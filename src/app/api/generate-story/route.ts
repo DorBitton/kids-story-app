@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -11,123 +10,79 @@ export async function POST(request: Request) {
   try {
     const { childName, age } = await request.json();
 
-    // Construct the prompt
-    const prompt = `I need to write a short bedtime story that is engaging, imaginative, and comforting for a ${age} year old child named ${childName}. The story should:
-    - Be 250-300 characters long and concise
-    - Use simple grade 10 English
-    - Have a clear beginning, middle, and happy ending
-    - Include positive themes like friendship, kindness, or bravery
-    - Feature magical or whimsical elements
-    - Include two main characters with brief descriptions
-    - Use rhythm or repetitive phrases
-    - End on a soothing note
-    
-    Please format the response as follows:
-    Title:
-    Characters:
-    - Character 1 description
-    - Character 2 description
-    Story:
-    [Story content]
-    Ending Note:
-    [Comforting closing message]`;
+    console.log('\n=== Story Generation Request ===');
+    console.log(`Generating story for ${childName}, age ${age}`);
 
-    try {
-      // Call ChatGPT API with error handling
-      const completion = await openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are a skilled children's story writer who creates engaging, age-appropriate bedtime stories."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        model: "gpt-3.5-turbo",
-        temperature: 0.7,
-        max_tokens: 500
-      });
+    const prompt = `Create a bedtime story for a ${age} year old child named ${childName}. The story should be divided into 5 pages, with each page containing a short scene and a detailed scene description for image generation.
 
-      // Parse the response
-      const storyResponse = completion.choices[0].message.content;
+Requirements:
+- Each page should have 2-3 sentences of story content
+- Include a specific image generation prompt for each page that captures the scene
+- Use simple grade ${age}-appropriate language
+- Include magical or whimsical elements
+- Feature positive themes like friendship, kindness, or bravery
 
-      // Split the response into sections
-      const sections = storyResponse.split('\n\n');
-      const storyObject = {
-        title: '',
-        characters: [],
-        story: '',
-        endingNote: ''
-      };
+Format the response exactly as follows:
+Title: [Story Title]
 
-      // Parse each section
-      sections.forEach(section => {
-        if (section.startsWith('Title:')) {
-          storyObject.title = section.replace('Title:', '').trim();
-        } else if (section.startsWith('Characters:')) {
-          storyObject.characters = section
-            .replace('Characters:', '')
-            .trim()
-            .split('\n')
-            .map(char => char.trim())
-            .filter(char => char.startsWith('-'))
-            .map(char => char.substring(1).trim());
-        } else if (section.startsWith('Story:')) {
-          storyObject.story = section.replace('Story:', '').trim();
-        } else if (section.startsWith('Ending Note:')) {
-          storyObject.endingNote = section.replace('Ending Note:', '').trim();
-        }
-      });
+Page 1:
+Content: [2-3 sentences of story]
+Image Prompt: [Detailed scene description for AI image generation]
 
-      return NextResponse.json(storyObject);
+[Repeat for all pages]
 
-    } catch (openAiError: any) {
-      // Handle specific OpenAI API errors
-      if (openAiError.status === 429) {
-        return NextResponse.json(
-          { 
-            error: 'API rate limit exceeded. Please try again in a few moments.',
-            code: 'RATE_LIMIT_EXCEEDED'
-          },
-          { status: 429 }
-        );
-      }
-      
-      if (openAiError.status === 402) {
-        return NextResponse.json(
-          { 
-            error: 'API quota exceeded. Please check your OpenAI account.',
-            code: 'QUOTA_EXCEEDED'
-          },
-          { status: 402 }
-        );
-      }
+Make the image prompts detailed and specific, including style suggestions like "digital art style", "watercolor illustration", or "3D rendered scene".`;
 
-      // Log the specific error for debugging
-      console.error('OpenAI API Error:', {
-        status: openAiError.status,
-        message: openAiError.message,
-        type: openAiError.type
-      });
+    console.log('\n=== Prompt Sent to ChatGPT ===');
+    console.log(prompt);
 
-      return NextResponse.json(
-        { 
-          error: 'An error occurred while generating the story. Please try again.',
-          code: 'OPENAI_API_ERROR'
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are a children's book author and illustrator who creates engaging, age-appropriate stories with vivid scene descriptions."
         },
-        { status: openAiError.status || 500 }
-      );
-    }
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      max_tokens: 1000
+    });
 
-  } catch (error) {
-    console.error('General error generating story:', error);
+    const response = completion.choices[0].message.content;
+
+    console.log('\n=== ChatGPT Response ===');
+    console.log(response);
+
+    // Parse the response into pages
+    const [title, ...pageTexts] = response.split('\n\n').filter(text => text.trim());
+    const storyTitle = title.replace('Title: ', '').trim();
+    
+    const pages = pageTexts.map((pageText, index) => {
+      const [pageHeader, content, imagePrompt] = pageText.split('\n');
+      return {
+        pageNumber: index + 1,
+        content: content.replace('Content: ', '').trim(),
+        imagePrompt: imagePrompt.replace('Image Prompt: ', '').trim()
+      };
+    });
+
+    console.log('\n=== Parsed Story Structure ===');
+    console.log(JSON.stringify({ title: storyTitle, pages }, null, 2));
+
+    return NextResponse.json({
+      title: storyTitle,
+      pages: pages
+    });
+
+  } catch (error: any) {
+    console.error('\n=== Error Generating Story ===');
+    console.error(error);
     return NextResponse.json(
-      { 
-        error: 'Failed to process your request. Please try again.',
-        code: 'GENERAL_ERROR'
-      },
+      { error: 'Failed to generate story. Please try again.' },
       { status: 500 }
     );
   }
