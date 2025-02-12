@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,26 +26,50 @@ interface StoryResponse {
 const StoryGenerator = () => {
   const [childName, setChildName] = useState('');
   const [age, setAge] = useState('');
+  const [gender, setGender] = useState('male');
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [story, setStory] = useState<StoryResponse | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateStory = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!image) {
+      setError('Please upload a character image');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setStory(null);
     setCurrentPage(0);
 
     try {
+      const formData = new FormData();
+      formData.append('childName', childName);
+      formData.append('age', age);
+      formData.append('gender', gender);
+      formData.append('image', image);
+
       const response = await fetch('/api/generate-story', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ childName, age }),
+        body: formData,
       });
 
       const data = await response.json();
@@ -73,7 +97,7 @@ const StoryGenerator = () => {
             console.error('Failed to generate image for page:', page.pageNumber, err);
             return {
               ...page,
-              imageUrl: `https://picsum.photos/800/533?random=${Math.random()}`,
+              imageUrl: `https://picsum.photos/768/512?random=${Math.random()}`,
               imageStatus: 'failed'
             };
           }
@@ -102,7 +126,7 @@ const StoryGenerator = () => {
         <CardContent>
           <form onSubmit={generateStory} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="childName">Child Name</Label>
+              <Label htmlFor="childName">Child's Name</Label>
               <Input
                 id="childName"
                 value={childName}
@@ -126,9 +150,51 @@ const StoryGenerator = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <select
+                id="gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                required
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image">Character Image</Label>
+              <div className="flex items-center space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Image
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="image"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-20 w-20 object-cover rounded-md"
+                  />
+                )}
+              </div>
+            </div>
+
             <Button 
               type="submit" 
-              disabled={loading || generatingImages}
+              disabled={loading || generatingImages || !image}
               className="w-full"
             >
               {loading ? 'Creating Story...' : 
