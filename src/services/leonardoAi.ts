@@ -4,7 +4,7 @@ const LEONARDO_API_KEY = process.env.NEXT_PUBLIC_LEONARDO_API_KEY;
 const BASE_URL = 'https://cloud.leonardo.ai/api/rest/v1';
 
 // Leonardo Creative model
-const CREATIVE_MODEL_ID = 'e316348f-7773-490e-adcd-46757c738eb7';
+const CREATIVE_MODEL_ID = 'de7d3faf-762f-48e0-b3b7-9d0ac3a3fcf3';
 
 interface GenerationRequest {
   prompt: string;
@@ -66,11 +66,15 @@ export class LeonardoAiService {
         method: 'POST',
         body: JSON.stringify({
           prompt: params.prompt,
+          contrast: 3.5,
           modelId: params.modelId || CREATIVE_MODEL_ID,
           negative_prompt: params.negative_prompt || '',
           num_images: 1,
           width: 768,
-          height: 512
+          height: 512,
+          alchemy: true,
+          styleUUID: '111dc692-d470-4eec-b791-3475abac4c46',
+          enhancePrompt: false
         }),
       });
 
