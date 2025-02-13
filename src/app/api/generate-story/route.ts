@@ -55,27 +55,53 @@ async function generateCharacterDescription(childName: string, age: string, gend
 
 function parseStoryResponse(response: string) {
   try {
-    // Split into sections by "Page" markers
-    const sections = response.split(/\*\*Page \d+\*\*/g).filter(Boolean);
+    // Split the response into sections
+    const sections = response.split('\n\n');
     
-    // Extract title from first section
-    const titleMatch = sections[0].match(/Title: (.+?)(?:\r?\n|$)/);
-    const storyTitle = titleMatch ? titleMatch[1].trim() : 'Untitled Story';
+    // Find and extract the title
+    const titleLine = sections[0].match(/Title: (.+)/);
+    const storyTitle = titleLine ? titleLine[1].trim() : 'Untitled Story';
     
-    // Process each page section
-    const pages = sections.slice(1).map((section, index) => {
-      // Use regex to extract content and image prompt
-      const contentMatch = section.match(/Content: ([\s\S]*?)(?=Image Prompt:|$)/i);
-      const imagePromptMatch = section.match(/Image Prompt: ([\s\S]*?)(?=\*\*|$)/i);
-      
-      return {
-        pageNumber: index + 1,
-        content: contentMatch ? contentMatch[1].trim() : '',
-        imagePrompt: imagePromptMatch ? imagePromptMatch[1].trim() : ''
-      };
-    });
+    // Process each page
+    const pages = [];
+    let currentPage: any = {};
+    let pageNumber = 1;
 
-    return { title: storyTitle, pages: pages.filter(page => page.content && page.imagePrompt) };
+    for (const section of sections) {
+      if (section.includes('**Page')) {
+        // If we have a complete page, add it to pages
+        if (currentPage.content && currentPage.imagePrompt) {
+          pages.push(currentPage);
+        }
+        currentPage = { pageNumber: pageNumber++ };
+        
+        // Extract content and image prompt
+        const contentMatch = section.match(/Content: ([\s\S]*?)(?=Image Prompt:|$)/i);
+        const imagePromptMatch = section.match(/Image Prompt: ([\s\S]*?)(?=$)/i);
+        
+        if (contentMatch) {
+          currentPage.content = contentMatch[1].trim();
+        }
+        if (imagePromptMatch) {
+          currentPage.imagePrompt = imagePromptMatch[1].trim();
+        }
+      }
+    }
+    
+    // Add the last page if complete
+    if (currentPage.content && currentPage.imagePrompt) {
+      pages.push(currentPage);
+    }
+
+    // Filter out any incomplete pages and sort by page number
+    const validPages = pages
+      .filter(page => page.content && page.imagePrompt)
+      .sort((a, b) => a.pageNumber - b.pageNumber);
+
+    return {
+      title: storyTitle,
+      pages: validPages
+    };
   } catch (error) {
     console.error('Error parsing story response:', error);
     throw new Error('Failed to parse story response');
@@ -121,8 +147,13 @@ Story Guidelines:
 - Build to a gentle, satisfying conclusion
 - Include positive messages about friendship, courage, or kindness
 
-Format each page exactly as follows:
+Format the first page exactly as follows:
 **Page 1**
+Content: [2-3 sentences of story text, must include the main character in the scene]
+Image Prompt: [Detailed scene description], featuring "${characterDesc}"
+
+Format each page exactly as follows:
+**Page 2**
 Content: [2-3 sentences of story text]
 Image Prompt: [Detailed scene description], featuring "${characterDesc}"
 
