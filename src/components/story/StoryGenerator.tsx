@@ -79,10 +79,8 @@ const StoryGenerator = () => {
         return;
       }
 
-      // Initialize story without images
       setStory(data);
       
-      // Generate images for each page
       setGeneratingImages(true);
       const updatedPages = await Promise.all(
         data.pages.map(async (page: StoryPage) => {
@@ -97,7 +95,7 @@ const StoryGenerator = () => {
             console.error('Failed to generate image for page:', page.pageNumber, err);
             return {
               ...page,
-              imageUrl: `https://picsum.photos/768/512?random=${Math.random()}`,
+              imageUrl: `/api/placeholder/768/512?random=${Math.random()}`,
               imageStatus: 'failed'
             };
           }
@@ -118,109 +116,134 @@ const StoryGenerator = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>AI Story Generator</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={generateStory} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="childName">Child's Name</Label>
-              <Input
-                id="childName"
-                value={childName}
-                onChange={(e) => setChildName(e.target.value)}
-                required
-                placeholder="Enter child's name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="age">Age</Label>
-              <Input
-                id="age"
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                required
-                min="1"
-                max="12"
-                placeholder="Enter age"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <select
-                id="gender"
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
-                required
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image">Character Image</Label>
-              <div className="flex items-center space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload Image
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  id="image"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-20 w-20 object-cover rounded-md"
+    <div className="min-h-screen bg-[url('/api/placeholder/1920/1080')] bg-cover bg-center py-8">
+      <div className="container mx-auto px-4 flex flex-col lg:flex-row gap-8">
+        {/* Input Form Section */}
+        <div className="lg:w-1/3">
+          <Card className="bg-white/95 backdrop-blur-sm shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-purple-800">
+                Create Your Story
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={generateStory} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="childName" className="text-lg font-semibold text-purple-700">
+                    Child's Name
+                  </Label>
+                  <Input
+                    id="childName"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    required
+                    placeholder="Enter child's name"
+                    className="border-2 border-purple-200"
                   />
-                )}
-              </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="age" className="text-lg font-semibold text-purple-700">
+                    Age
+                  </Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    required
+                    min="1"
+                    max="12"
+                    placeholder="Enter age"
+                    className="border-2 border-purple-200"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender" className="text-lg font-semibold text-purple-700">
+                    Gender
+                  </Label>
+                  <select
+                    id="gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="w-full rounded-md border-2 border-purple-200 bg-white px-3 py-2"
+                    required
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image" className="text-lg font-semibold text-purple-700">
+                    Character Image
+                  </Label>
+                  <div className="flex flex-col items-center space-y-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full border-2 border-purple-200 hover:bg-purple-50"
+                    >
+                      Upload Image
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="image"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    {imagePreview && (
+                      <div className="relative w-32 h-32">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover rounded-lg shadow-md"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  disabled={loading || generatingImages || !image}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg py-6"
+                >
+                  {loading ? 'Creating Story...' : 
+                   generatingImages ? 'Generating Images...' : 
+                   'Generate Story'}
+                </Button>
+              </form>
+
+              {error && (
+                <Alert variant="destructive" className="mt-6">
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Story Display Section */}
+        <div className="lg:w-2/3">
+          {story && !error && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-2xl">
+              <StoryBook
+                title={story.title}
+                pages={story.pages}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                loading={loading || generatingImages}
+              />
             </div>
-
-            <Button 
-              type="submit" 
-              disabled={loading || generatingImages || !image}
-              className="w-full"
-            >
-              {loading ? 'Creating Story...' : 
-               generatingImages ? 'Generating Images...' : 
-               'Generate Story'}
-            </Button>
-          </form>
-
-          {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
           )}
-        </CardContent>
-      </Card>
-
-      {story && !error && (
-        <StoryBook
-          title={story.title}
-          pages={story.pages}
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-          loading={loading || generatingImages}
-        />
-      )}
+        </div>
+      </div>
     </div>
   );
 };

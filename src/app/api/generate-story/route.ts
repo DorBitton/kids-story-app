@@ -12,7 +12,7 @@ async function generateCharacterDescription(childName: string, age: string, gend
     const imageAnalysisPrompt = "Analyze this image and describe the person using these exact parameters. Only respond with parameter values, nothing else:\n\nHairstyle: (Choose from: Pixie Cut, Buzz Cut, Crew Cut, Bob Cut, Shag, Lob, Layered Cut, Undercut, French Bob, V-Cut, U-Cut, Feathered Cut, Curly Bob, Beach Waves, Afro, Ringlets, Spiral Curls, Classic Bun, Top Knot, Chignon, Braided Bun, Messy Bun, Classic Braid, French Braid, Dutch Braid, Fishtail Braid, Cornrows, High Ponytail, Low Ponytail, Side Ponytail, Braided Ponytail, Bubble Ponytail, Pompadour, Quiff, Slick Back, Side Part, Mohawk, Dreadlocks, Man Bun, Emo Cut, Mullet, Straight Across Bangs, Side-Swept Bangs, Curtain Bangs, Wispy Bangs, Blunt Bangs)\n\nHair Color: (Choose from: Black, Brown, Blonde, Auburn, Red, Gray, White, Silver, Platinum Blonde, Golden Blonde, Strawberry Blonde, Light Brown, Dark Brown, Chestnut, Burgundy, Blue, Green, Pink, Purple, Orange, Multicolored)\n\nSkin Tone: (Choose from: Fair, Light, Medium, Olive, Tan, Bronze, Dark, Deep, Alabaster, Porcelain, Ivory, Beige, Sand, Golden, Caramel, Honey, Chestnut, Espresso, Cocoa, Chocolate, Ebony, Almond, Warm Beige)\n\nAccessories: (e.g. Glasses, Headband etc.)\n\nOutfit Upper Body: (e.g., T-shirt, Blouse, Jacket)\n\nUpper Clothing Color: (e.g., Red, Blue, Green, Yellow, Pink, Purple, etc.)\n\nOutfit Lower Body: (e.g., Skirt, Pants, Shorts)\n\nLower Clothing Color: (e.g., Black, White, Brown, Gray, etc.)\n\nFacial Expression: (e.g., Cheerful, Serious, Thoughtful, Excited, Playful, etc.)\n\nAction: (e.g., Dancing, Playing, Smiling, Reading, Jumping, etc.)";
 
     const imageAnalysisResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
     console.log('\n=== Story Generation Request ===');
     console.log(`Name: ${childName}, Age: ${age}, Gender: ${gender}`);
 
-    // Convert image to base64
+    // Convert image to base64 using the working method from the first file
     const imageArrayBuffer = await image.arrayBuffer();
     const imageBase64 = Buffer.from(imageArrayBuffer).toString('base64');
     const imageData = `data:${image.type};base64,${imageBase64}`;
@@ -135,7 +135,7 @@ Image Prompt: [Detailed scene description], featuring "${characterDesc}"
       messages: [
         {
           role: "system",
-          content: "You are a children's book author specializing in magical bedtime stories. Create engaging, age-appropriate content with vivid imagery suitable for AI illustration."
+          content: "You are a children's book author specializing in magical bedtime stories. Create engaging, age-appropriate content with vivid imagery suitable for AI illustration. For each scene's image prompt, first write a detailed description of the magical scene, environment, lighting, and atmosphere. Then add ', featuring' followed by the exact character description provided. Make each scene description vivid and detailed, suitable for AI image generation."
         },
         {
           role: "user",
